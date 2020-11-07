@@ -35,8 +35,14 @@ char *get_input(){
     char *buf;
 
     buf = readline(">>> ");
+    
+    // Sai da shell quando Ctrl+D são pressionados.
+    if(buf == NULL){
+        printf("\n");
+        exit(0);
+    }
 
-    if(strlen(buf) != 0){
+    else if(strlen(buf) != 0){
         // Adiciona o comando ao histórico do usuário
         add_history(buf);
         return buf; 
@@ -44,7 +50,6 @@ char *get_input(){
 
     return NULL;
 }
-
 
 void exec_comando(char *comando){
 
@@ -121,8 +126,12 @@ int main(){
         char *comando = get_input();
         
         if(comando != NULL){
-            exec_comando(comando);
+         exec_comando(comando); 
         }
+
+        // Pula uma linha entre comandos
+        printf("\n");
+        
     }  
 
     exit(0);
