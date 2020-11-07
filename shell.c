@@ -6,6 +6,8 @@
 #include <sys/wait.h> 
 #include <readline/readline.h> 
 #include <readline/history.h> 
+#include <limits.h>
+#include <errno.h>
 
 #define clear() printf("\033[H\033[J") 
 
@@ -19,16 +21,26 @@ void inicia_shell(){
 
 char *get_input(){
 
-    
     char *buf;
     
     /*A biblioteca libreadline-gplv2-dev:i386 talvez seja necessária para compilar a função
     readline em 32bits*/
+    
+    char cwd[PATH_MAX+1];
+
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        // Pula uma linha por que tem um bug quando vemos o histórico de comandos.
+        printf("%s\n", cwd);
+    } else {
+        perror("getcwd() error");
+        return NULL;
+    }
+
     buf = readline(">>> ");
 
     if(strlen(buf) != 0){
-        // Adiciona o comando ao histórico do usuário (Ainda não testado)
-        add_history(buf); 
+        // Adiciona o comando ao histórico do usuário
+        add_history(buf);
         return buf; 
     }
 
@@ -61,7 +73,6 @@ void exec_comando(char *comando){
             args_comando[i+1] = NULL;
             break;            
         }
-        
 
     }
 
@@ -74,37 +85,46 @@ void exec_comando(char *comando){
     */
     
 
-    /*
+
     //Lista dos nossos comandos built-in possíveis
     char *comandos[NUM_COMANDOS] = {"quit", "fg", "bg", "jobs", "cd"};
     
-    // Será o index do argumento chamado da lista de comandos.
-    int numero_agr;    
+    // Será o index do argumento chamado SE ele existir na lista dos nossos comandos built-in.
+    int numero_agr = -1;    
     
     for (int i = 0; i < NUM_COMANDOS; i++)
     {
-        if(strcmp(comando, comandos[i]) == 0){
+        if(strcmp(args_comando[0], comandos[i]) == 0){
             numero_agr = i;
             break;
         }
 
-    }  
-        
-    switch (numero_agr)
-    {    
-    case 0:        
-        break;
-    case 1:        
-        break;
-    case 2:        
-        break;
-    case 3:        
-        break;
-    case 4:        
-        break;            
-    
     }
-    */
+
+    
+    // Se o comando não existir na lista não entra nesse bloco
+    if(numero_agr != -1){
+
+        switch (numero_agr)
+        {
+            case 0:       
+                break;
+            case 1:        
+                break;
+            case 2:        
+                break;
+            case 3:        
+                break;
+            case 4:
+                if(chdir(args_comando[1]) != 0){
+                    perror("Erro");
+                }
+                return;               
+        }
+
+    }     
+    
+
 
     // Caso não seja um comando built-in executamos esse bloco    
         pid_t pid = fork();
@@ -127,6 +147,7 @@ void exec_comando(char *comando){
         }
 
         free(args_comando);
+        free(comando);
 }
 
 
@@ -134,6 +155,7 @@ void exec_comando(char *comando){
 int main(){    
     
     inicia_shell();
+
 
     while(1){
         char *comando = get_input();
