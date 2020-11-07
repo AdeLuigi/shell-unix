@@ -10,26 +10,6 @@
 #define clear() printf("\033[H\033[J") 
 
 #define NUM_COMANDOS 5
-#include <stdio.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <limits.h>
-#include <dirent.h> 
-
-
-/* int main()
-{ 
- 
-  if (getcwd(cwd, sizeof(cwd)) != NULL) {
-      printf("\nsuper-shell-boladona:~%s$ ", cwd);
-  } else {
-      perror("getcwd() error");
-      return 1;
-  }
- principal ();
-} */
-
-char cwd[PATH_MAX];
 
 void inicia_shell(){
     
@@ -41,20 +21,11 @@ char *get_input(){
 
     
     char *buf;
-    char concatenado[] = "super-shell-boladona:~";
+    
     /*A biblioteca libreadline-gplv2-dev:i386 talvez seja necessária para compilar a função
     readline em 32bits*/
-    char cwd[PATH_MAX];
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        
-    } else {
-        perror("getcwd() error");
-        return 1;
-    }
-    strcat(concatenado,cwd);
-    strcat(concatenado,"$ ");
-    buf = readline(concatenado);
-    
+    buf = readline(">>> ");
+
     if(strlen(buf) != 0){
         // Adiciona o comando ao histórico do usuário (Ainda não testado)
         add_history(buf); 
@@ -86,15 +57,10 @@ void exec_comando(char *comando){
         args_comando[i] = arg;        
         arg = strtok(NULL, " "); 
 
-    //verifica se o primeiro argumento é cd
-    if(strcmp(argumentos_shell[0], "cd") == 0){
-      
-      //“cd” não funciona nativamente usando execvp, por isso executamos com chdir ()
-      chdir(argumentos_shell[1]);
-      return;
-    }
-
-
+        if (arg == NULL) {
+            args_comando[i+1] = NULL;
+            break;            
+        }
         
 
     }
