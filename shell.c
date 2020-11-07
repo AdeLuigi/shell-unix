@@ -8,9 +8,23 @@
 #include <readline/history.h> 
 #include <limits.h>
 #include <errno.h>
-#include <dirent.h> 
+#include <dirent.h>
+#include <signal.h>
+#include <setjmp.h>
 
 #define clear() printf("\033[H\033[J") 
+
+static sigjmp_buf env;
+static volatile sig_atomic_t jump_active = 0;
+
+int stat_loc;
+
+void sigint_handler(int signo) {
+    if (!jump_active) {
+        return;
+    }
+    siglongjmp(env, 42);
+}
 
 void inicia_shell(){
     
@@ -85,6 +99,9 @@ void exec_comando(char *comando){
             perror("Erro");
         }
 
+        free(comando);
+        free(args_comando);
+
         return;
     }
 
@@ -95,22 +112,38 @@ void exec_comando(char *comando){
         
         if(pid == -1){
             puts("Falha ao executar um novo processo.");
+
+            free(comando);
+            free(args_comando);
+
             return;
         }
         //Processo filho sendo executado
         else if(pid == 0){
 
+            struct sigaction s_child;
+            s_child.sa_handler = sigint_handler;
+            sigemptyset(&s_child.sa_mask);
+            s_child.sa_flags = SA_RESTART;
+            sigaction(SIGINT, &s_child, NULL);
+
             if(execv(args_comando[0], args_comando) < 0){
                 puts("Não foi possível executar o comando.");
+
+                free(comando);
+                free(args_comando);
+
                 return;
             }
 
         }else{
             //O processo pai espera o processo filho terminar
-            wait(NULL);
-            return;
+            waitpid(pid, &stat_loc, WUNTRACED);
     
         }
+
+        free(comando);
+        free(args_comando);
 
     }
 
@@ -120,13 +153,27 @@ int main(){
     
     inicia_shell();
 
+    /* Setup SIGINT */
+    struct sigaction s;
+    s.sa_handler = sigint_handler;
+    sigemptyset(&s.sa_mask);
+    s.sa_flags = SA_RESTART;
+    sigaction(SIGINT, &s, NULL);
+
     while(1){
+
+        if (sigsetjmp(env, 1) == 42) {
+            printf("\n\n");
+            continue;
+        }
+
+        jump_active = 1;
         
         printa_dir_atual();
-        char *comando = get_input();
+        char *comando = get_input();        
         
         if(comando != NULL){
-         exec_comando(comando); 
+            exec_comando(comando); 
         }
 
         // Pula uma linha entre comandos
