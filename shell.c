@@ -8,10 +8,9 @@
 #include <readline/history.h> 
 #include <limits.h>
 #include <errno.h>
+#include <dirent.h> 
 
 #define clear() printf("\033[H\033[J") 
-
-#define NUM_COMANDOS 5
 
 void inicia_shell(){
     
@@ -19,22 +18,21 @@ void inicia_shell(){
     //puts("Nossa Shell:");
 }
 
+void printa_dir_atual(){
+    
+    char cwd[PATH_MAX];
+
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        printf("%s\n", cwd);
+    } else {
+        perror("Erro: ");
+        return;
+    }
+}
+
 char *get_input(){
 
     char *buf;
-    
-    /*A biblioteca libreadline-gplv2-dev:i386 talvez seja necessária para compilar a função
-    readline em 32bits*/
-    
-    char cwd[PATH_MAX+1];
-
-    if (getcwd(cwd, sizeof(cwd)) != NULL) {
-        // Pula uma linha por que tem um bug quando vemos o histórico de comandos.
-        printf("%s\n", cwd);
-    } else {
-        perror("getcwd() error");
-        return NULL;
-    }
 
     buf = readline(">>> ");
 
@@ -50,13 +48,11 @@ char *get_input(){
 
 void exec_comando(char *comando){
 
-    /*Haverá pelo menos um argumento.
+/*Haverá pelo menos um argumento.
     Criaremos com 3 pq normalmente é o máximo de argumentos passados pelo usuário
     + NULL por causa da função que executa os comandos*/
     char **args_comando = (char**) malloc(sizeof(char*)*3);
     args_comando[2] = NULL;
-
-    //int num_args;
 
     char *arg = strtok(comando, " ");
     
@@ -75,62 +71,26 @@ void exec_comando(char *comando){
         }
 
     }
-
-    /*for (int i = 0; args_comando[i] != NULL; i++)
-    {
-        printf("%s\n", args_comando[i]);
-    }
     
-    exit(0);
-    */
-    
-
-
-    //Lista dos nossos comandos built-in possíveis
-    char *comandos[NUM_COMANDOS] = {"quit", "fg", "bg", "jobs", "cd"};
-    
-    // Será o index do argumento chamado SE ele existir na lista dos nossos comandos built-in.
-    int numero_agr = -1;    
-    
-    for (int i = 0; i < NUM_COMANDOS; i++)
-    {
-        if(strcmp(args_comando[0], comandos[i]) == 0){
-            numero_agr = i;
-            break;
+    // Já com os argumentos divididos, testa se são built-in.
+    if(strcmp(args_comando[0], "cd") == 0){     
+      
+      //“cd” não funciona nativamente usando exec..(), por isso executamos com chdir ()
+      if(chdir(args_comando[1]) != 0){
+            perror("Erro");
         }
 
+        return;
     }
 
-    
-    // Se o comando não existir na lista não entra nesse bloco
-    if(numero_agr != -1){
+    // Caso não seja um comando built-in executamos esse o bloco abaixo
+    else{
 
-        switch (numero_agr)
-        {
-            case 0:       
-                break;
-            case 1:        
-                break;
-            case 2:        
-                break;
-            case 3:        
-                break;
-            case 4:
-                if(chdir(args_comando[1]) != 0){
-                    perror("Erro");
-                }
-                return;               
-        }
-
-    }     
-    
-
-
-    // Caso não seja um comando built-in executamos esse bloco    
         pid_t pid = fork();
-     
+        
         if(pid == -1){
             puts("Falha ao executar um novo processo.");
+            return;
         }
         //Processo filho sendo executado
         else if(pid == 0){
@@ -144,21 +104,22 @@ void exec_comando(char *comando){
             //O processo pai espera o processo filho terminar
             wait(NULL);
             return;
+    
         }
 
-        free(args_comando);
-        free(comando);
+    }
+
 }
-
-
 
 int main(){    
     
     inicia_shell();
 
-
     while(1){
+        
+        printa_dir_atual();
         char *comando = get_input();
+        
         if(comando != NULL){
             exec_comando(comando);
         }
