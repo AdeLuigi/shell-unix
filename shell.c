@@ -38,6 +38,7 @@ void inicia_shell(){
 }
 
 char *get_input(){
+
     
     char *buf;
     char concatenado[] = "super-shell-boladona:~";
@@ -63,17 +64,27 @@ char *get_input(){
     return NULL;
 }
 
+
 void exec_comando(char *comando){
 
-    char *arg_comando;
+    /*Haverá pelo menos um argumento.
+    Criaremos com 3 pq normalmente é o máximo de argumentos passados pelo usuário
+    + NULL por causa da função que executa os comandos*/
+    char **args_comando = (char**) malloc(sizeof(char*)*3);
+    args_comando[2] = NULL;
+
+    //int num_args;
+
+    char *arg = strtok(comando, " ");
     
-    // Comando que o usuário entrou
-    comando = strtok(comando, " ");
-
-    // Argumento do comando.
-    arg_comando = strtok(NULL, " ");
-
-    char *argumentos_shell[3] = {comando, arg_comando, NULL};
+    for (int i = 0; ; i++)
+    {
+        if(i > 2){
+            args_comando = (char**) realloc(args_comando, sizeof(char*)*(i+1));
+        }
+        
+        args_comando[i] = arg;        
+        arg = strtok(NULL, " "); 
 
     //verifica se o primeiro argumento é cd
     if(strcmp(argumentos_shell[0], "cd") == 0){
@@ -83,8 +94,53 @@ void exec_comando(char *comando){
       return;
     }
 
-    // Caso não seja um comando built-in executamos esse bloco
-    if(strcmp(comando, ".") || strcmp(comando, "/") == 0){
+
+        
+
+    }
+
+    /*for (int i = 0; args_comando[i] != NULL; i++)
+    {
+        printf("%s\n", args_comando[i]);
+    }
+    
+    exit(0);
+    */
+    
+
+    /*
+    //Lista dos nossos comandos built-in possíveis
+    char *comandos[NUM_COMANDOS] = {"quit", "fg", "bg", "jobs", "cd"};
+    
+    // Será o index do argumento chamado da lista de comandos.
+    int numero_agr;    
+    
+    for (int i = 0; i < NUM_COMANDOS; i++)
+    {
+        if(strcmp(comando, comandos[i]) == 0){
+            numero_agr = i;
+            break;
+        }
+
+    }  
+        
+    switch (numero_agr)
+    {    
+    case 0:        
+        break;
+    case 1:        
+        break;
+    case 2:        
+        break;
+    case 3:        
+        break;
+    case 4:        
+        break;            
+    
+    }
+    */
+
+    // Caso não seja um comando built-in executamos esse bloco    
         pid_t pid = fork();
      
         if(pid == -1){
@@ -93,7 +149,7 @@ void exec_comando(char *comando){
         //Processo filho sendo executado
         else if(pid == 0){
 
-            if(execvp(argumentos_shell[0], argumentos_shell) < 0){
+            if(execv(args_comando[0], args_comando) < 0){
                 puts("Não foi possível executar o comando.");
                 return;
             }
@@ -103,36 +159,8 @@ void exec_comando(char *comando){
             wait(NULL);
             return;
         }
-    }
-    
-    //Lista de comandos built-in possíveis
-    char *comandos[NUM_COMANDOS] = {"quit", "fg", "bg", "jobs", "cd"};
-    
-    // Será o index do argumento chamado, SE esse argumento for válido.
-    int numero_agv = -1;    
-    
-    for (int i = 0; i < NUM_COMANDOS; i++)
-    {
-        if(strcmp(comando, comandos[i]) == 0){
-            numero_agv = i;
-            break;
-        }
 
-    }
-    
-    if(numero_agv = -1){
-        puts("Comando built-in não reconhecido.");
-        return;
-    }    
-        
-    switch (numero_agv)
-    {    
-    case 0:        
-        break;
-    
-    default:
-        break;
-    }
+        free(args_comando);
 }
 
 
@@ -147,7 +175,6 @@ int main(){
             exec_comando(comando);
         }
     }  
-    
 
     exit(0);
 }
